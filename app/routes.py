@@ -1,48 +1,72 @@
-from flask import Flask, render_template, request, redirect, url_for, send_from_directory, current_app
-from werkzeug.utils import secure_filename
-import os
-from .encryption import encrypt_message, decrypt_message
-from .steganography import encode_message, decode_message
-from PIL import Image
-
-app = Flask(__name__)
-app.config.from_object('config.Config')
+from flask import render_template, url_for, flash, redirect, request
+from app import app, db, bcrypt
+from app.forms import RegistrationForm, LoginForm
+from app.models import User
+from flask_login import login_user, current_user, logout_user, login_required
+from app.steganography import encode_message, decode_message
 
 @app.route('/')
+@app.route('/home')
 def home():
-    return render_template('index.html')
+    return render_template('home.html')
 
-@app.route('/encrypt', methods=['POST'])
-def encrypt():
-    message = request.form['message']
-    password = request.form['password']
-    encrypted_message = encrypt_message(message, password)
-    return render_template('index.html', encrypted_message=encrypted_message)
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        user = User(username=form.username.data, email=form.email.data, password=hashed_password)
+        db.session.add(user)
+        db.session.commit()
+        flash('Your account has been created! You are now able to log in', 'success')
+        return redirect(url_for('login'))
+    return render_template('register.html', title='Register', form=form)
 
-@app.route('/decrypt', methods=['POST'])
-def decrypt():
-    encrypted_message = request.form['encrypted_message']
-    password = request.form['password']
-    decrypted_message = decrypt_message(encrypted_message, password)
-    return render_template('index.html', decrypted_message=decrypted_message)
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if current_user.is_authenticated:
+        return redirect(url_for('home'))
+    form = LoginForm()
+    if form.validate_on_submit():
+        user = User.query.filter_by(email=form.email.data).first()
+        if user and bcrypt.check_password_hash(user.password, form.password.data):
+            login_user(user, remember=form.remember.data)
+            next_page = request.args.get('next')
+            return redirect(next_page) if next_page else redirect(url_for('home'))
+        else:
+            flash('Login Unsuccessful. Please check email and password', 'danger')
+    return render_template('login.html', title='Login', form=form)
 
-@app.route('/upload', methods=['GET', 'POST'])
-def upload_file():
+@app.route('/logout')
+def logout():
+    logout_user()
+    return redirect(url_for('home'))
+
+@app.route('/account')
+@login_required
+def account():
+    return render_template('account.html', title='Account')
+
+@app.route('/encode', methods=['GET', 'POST'])
+@login_required
+def encode():
     if request.method == 'POST':
-        if 'file' not in request.files:
-            return redirect(request.url)
-        file = request.files['file']
         message = request.form['message']
-        if file.filename == '':
-            return redirect(request.url)
-        if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(current_app.config['UPLOAD_FOLDER'], filename)
-            file.save(file_path)
-            encoded_image_path = os.path.join(current_app.config['UPLOAD_FOLDER'], 'encoded_' + filename)
-            encode_message(file_path, message, encoded_image_path)
-            return send_from_directory(current_app.config['UPLOAD_FOLDER'], 'encoded_' + filename)
-    return render_template('upload.html')
+        image = request.files['image']
+        encoded_image = encode_message(image, message)
+        # Save or process the encoded_image
+        flash('Message encoded successfully!', 'success')
+        return redirect(url_for('home'))
+    return render_template('encode.html', title='Encode')
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
+@app.route('/decode', methods=['GET', 'POST'])
+@login_required
+def decode():
+    if request.method == 'POST':
+        image = request.files['image']
+        message = decode_message(image)
+        flash(f'Decoded message: {message}', 'success')
+        return redirect(url_for('home'))
+    return render_template('decode.html', title='Decode')
