@@ -1,9 +1,19 @@
-from flask import render_template, url_for, flash, redirect, request
+from flask import render_template, url_for, flash, redirect, request, send_file
 from app import app, db, bcrypt
 from app.forms import RegistrationForm, LoginForm
 from app.models import User
 from flask_login import login_user, current_user, logout_user, login_required
 from app.steganography import encode_message, decode_message
+import os
+from werkzeug.utils import secure_filename
+
+# Configure the upload folder and allowed extensions
+UPLOAD_FOLDER = 'app/static/uploads'
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/')
 @app.route('/home')
@@ -53,20 +63,43 @@ def account():
 @login_required
 def encode():
     if request.method == 'POST':
-        message = request.form['message']
-        image = request.files['image']
-        encoded_image = encode_message(image, message)
-        # Save or process the encoded_image
-        flash('Message encoded successfully!', 'success')
-        return redirect(url_for('home'))
+        if 'image' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
+        file = request.files['image']
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            message = request.form['message']
+            encoded_image = encode_message(filepath, message)
+            encoded_filename = 'encoded_' + filename
+            encoded_image_path = os.path.join(app.config['UPLOAD_FOLDER'], encoded_filename)
+            encoded_image.save(encoded_image_path)  # Save the image to the specified path
+            flash('Message encoded successfully!', 'success')
+            return send_file(encoded_image_path, as_attachment=True, download_name=encoded_filename)
     return render_template('encode.html', title='Encode')
+
 
 @app.route('/decode', methods=['GET', 'POST'])
 @login_required
 def decode():
     if request.method == 'POST':
-        image = request.files['image']
-        message = decode_message(image)
-        flash(f'Decoded message: {message}', 'success')
-        return redirect(url_for('home'))
+        if 'image' not in request.files:
+            flash('No file part', 'danger')
+            return redirect(request.url)
+        file = request.files['image']
+        if file.filename == '':
+            flash('No selected file', 'danger')
+            return redirect(request.url)
+        if file and allowed_file(file.filename):
+            filename = secure_filename(file.filename)
+            filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+            file.save(filepath)
+            message = decode_message(filepath)
+            flash(f'Decoded message: {message}', 'success')
+            return redirect(url_for('home'))
     return render_template('decode.html', title='Decode')
