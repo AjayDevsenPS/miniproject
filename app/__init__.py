@@ -1,3 +1,7 @@
+"""
+This module handles the initialization of the Flask application and registers the routes.
+"""
+
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_bcrypt import Bcrypt
