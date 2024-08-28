@@ -4,6 +4,9 @@ from wtforms.validators import DataRequired, Length, Email, EqualTo, ValidationE
 from app.models import User
 
 class RegistrationForm(FlaskForm):
+    """
+    Form for users to create a new account.
+    """
     username = StringField('Username',
                            validators=[DataRequired(), Length(min=2, max=20)])
     email = StringField('Email',
@@ -14,6 +17,12 @@ class RegistrationForm(FlaskForm):
     submit = SubmitField('Sign Up')
 
     def validate_username(self, username):
+        """
+         Validate that the username doesn't already exist in the database.
+
+        :param username: Username to be checked
+        :return: None
+        """
         user = User.query.filter_by(username=username.data).first()
         if user:
             raise ValidationError('That username is taken. Please choose a different one.')

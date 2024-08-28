@@ -30,6 +30,7 @@ def encode_message(image_path, message):
     # Return the encoded image
     return encoded
 
+
 def decode_message(image_path):
     img = Image.open(image_path)
     binary_data = ""

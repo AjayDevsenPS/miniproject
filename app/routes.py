@@ -8,7 +8,7 @@ import os
 from werkzeug.utils import secure_filename
 
 # Configure the upload folder and allowed extensions
-UPLOAD_FOLDER = 'app/static/uploads'
+UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
@@ -62,6 +62,10 @@ def account():
 @app.route('/encode', methods=['GET', 'POST'])
 @login_required
 def encode():
+    # Ensure the upload directory exists
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+
     if request.method == 'POST':
         if 'image' not in request.files:
             flash('No file part', 'danger')
@@ -83,10 +87,15 @@ def encode():
             return send_file(encoded_image_path, as_attachment=True, download_name=encoded_filename)
     return render_template('encode.html', title='Encode')
 
-
 @app.route('/decode', methods=['GET', 'POST'])
 @login_required
 def decode():
+    # Ensure the upload directory exists
+    if not os.path.exists(app.config['UPLOAD_FOLDER']):
+        os.makedirs(app.config['UPLOAD_FOLDER'])
+
+    decoded_message = None
+
     if request.method == 'POST':
         if 'image' not in request.files:
             flash('No file part', 'danger')
@@ -99,7 +108,9 @@ def decode():
             filename = secure_filename(file.filename)
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
-            message = decode_message(filepath)
-            flash(f'Decoded message: {message}', 'success')
-            return redirect(url_for('home'))
-    return render_template('decode.html', title='Decode')
+            decoded_message = decode_message(filepath)
+            if decoded_message:
+                flash(f'Decoded message: {decoded_message}', 'success')
+            else:
+                flash('No message could be decoded from the image.', 'danger')
+    return render_template('decode.html', title='Decode', decoded_message=decoded_message)
