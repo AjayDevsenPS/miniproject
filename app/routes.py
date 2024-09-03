@@ -114,3 +114,8 @@ def decode():
             else:
                 flash('No message could be decoded from the image.', 'danger')
     return render_template('decode.html', title='Decode', decoded_message=decoded_message)
+
+@app.route('/reset_password', methods=['GET', 'POST'])
+def reset_password():
+    # Logic for resetting the password
+    return render_template('reset_password.html')
