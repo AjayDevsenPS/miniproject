@@ -20,6 +20,16 @@
                         <input type="submit" class="btn btn-primary" value="Encode">
                     </div>
                 </form>
+
+                <hr>
+
+                <!-- Section for default PNG download -->
+                <div class="text-center mt-4">
+                    <h5>Or use this default image:</h5>
+                    <a href="{{ url_for('static', filename='images/default_image.png') }}" download="default_image.png" class="btn btn-secondary">
+                        Download Default Image
+                    </a>
+                </div>
             </div>
         </div>
     </div>

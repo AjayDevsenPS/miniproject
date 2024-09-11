@@ -1,4 +1,4 @@
-from flask import render_template, url_for, flash, redirect, request, send_file
+from flask import render_template, url_for, flash, redirect, request, send_file,session
 from app import app, db, bcrypt
 from app.forms import RegistrationForm, LoginForm
 from app.models import User
@@ -57,7 +57,10 @@ def logout():
 @app.route('/account')
 @login_required
 def account():
-    return render_template('account.html', title='Account')
+    # Assuming user information is stored in session after login
+    user_email = session.get('user_email')
+    user_name = session.get('user_name')
+    return render_template('account.html', email=user_email, name=user_name)
 
 @app.route('/encode', methods=['GET', 'POST'])
 @login_required
