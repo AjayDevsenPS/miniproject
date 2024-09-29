@@ -12,6 +12,8 @@
         <div class="card shadow-sm">
             <div class="card-body">
                 <h1 class="mb-4 text-center">Decode Message</h1>
+                
+                <!-- Decode form always visible -->
                 <form method="POST" enctype="multipart/form-data">
                     <div class="form-group">
                         <label for="image" class="form-label">Select Image:</label>
@@ -21,17 +23,21 @@
                         <input type="submit" class="btn btn-primary" value="Decode">
                     </div>
                 </form>
+
+                <!-- Decoded message section (only visible if a message is decoded) -->
                 {% if decoded_message %}
                     <div class="alert alert-success mt-4">
                         <h4 class="alert-heading">Decoded Message:</h4>
                         <p>{{ decoded_message }}</p>
                     </div>
-                    <div class="text-center mt-4">
-                        <a href="{{ url_for('encode') }}" class="btn btn-secondary">Encode Another Message</a>
-                        <a href="{{ url_for('home') }}" class="btn btn-info">Home</a>
-                        <a href="{{ url_for('account') }}" class="btn btn-outline-primary">Account</a>
-                    </div>
                 {% endif %}
+
+                <!-- Navigation buttons, always visible -->
+                <div class="text-center mt-4">
+                    <a href="{{ url_for('encode') }}" class="btn btn-secondary">Encode Another Message</a>
+                    <a href="{{ url_for('home') }}" class="btn btn-info">Home</a>
+                    <a href="{{ url_for('account') }}" class="btn btn-outline-primary">Account</a>
+                </div>
             </div>
         </div>
     </div>
