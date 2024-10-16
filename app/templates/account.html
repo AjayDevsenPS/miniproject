@@ -1,10 +1,20 @@
 {% extends "base.html" %}
 
-{% block title %}Account{% endblock %}
+{% block title %}Reset Password{% endblock %}
 
 {% block content %}
-    <h1>Your Account</h1>
-    <p>Reset your password from here.</p>
+    <h1>Reset Your Password</h1>
+
+    <!-- Display flash message -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <div id="flash-message" class="alert alert-success" role="alert">
+                {% for category, message in messages %}
+                    <div class="{{ category }}">{{ message }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    {% endwith %}
 
     <!-- Password reset form -->
     <form method="POST" action="{{ url_for('reset_password') }}">
@@ -17,6 +27,18 @@
             <label for="confirm_password">Confirm Password</label>
             {{ form.confirm_password(class="form-control") }}
         </div>
+        <br>
         <button type="submit" class="btn btn-primary">Update Password</button>
     </form>
+
+    <!-- Optional: Add a script to show pop-up -->
+    <script>
+        window.onload = function() {
+            var flashMessage = document.getElementById('flash-message');
+            if (flashMessage) {
+                alert(flashMessage.innerText); // Show alert with the flash message
+                flashMessage.remove(); // Remove the flash message from the DOM
+            }
+        };
+    </script>
 {% endblock %}
