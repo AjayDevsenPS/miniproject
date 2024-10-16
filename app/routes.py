@@ -1,11 +1,12 @@
-from flask import render_template, url_for, flash, redirect, request, send_file,session
+from flask import render_template, url_for, flash, redirect, request, send_file
 from app import app, db, bcrypt
-from app.forms import RegistrationForm, LoginForm
+from app.forms import RegistrationForm, LoginForm, ResetPasswordForm
 from app.models import User
 from flask_login import login_user, current_user, logout_user, login_required
 from app.steganography import encode_message, decode_message
 import os
 from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash
 
 # Configure the upload folder and allowed extensions
 UPLOAD_FOLDER = os.path.join(app.root_path, 'static', 'uploads')
@@ -26,7 +27,7 @@ def register():
         return redirect(url_for('home'))
     form = RegistrationForm()
     if form.validate_on_submit():
-        hashed_password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        hashed_password = bcrypt.generate_password_hash(form.password.data)  # No .decode('utf-8') needed
         user = User(username=form.username.data, email=form.email.data, password=hashed_password)
         db.session.add(user)
         db.session.commit()
@@ -54,13 +55,17 @@ def logout():
     logout_user()
     return redirect(url_for('home'))
 
-@app.route('/account')
+@app.route('/account', methods=['GET', 'POST'])
 @login_required
 def account():
-    # Assuming user information is stored in session after login
-    user_email = session.get('user_email')
-    user_name = session.get('user_name')
-    return render_template('account.html', email=user_email, name=user_name)
+    form = ResetPasswordForm()  # Instantiate the form for password reset
+    if form.validate_on_submit():
+        # Hash the new password, no need for .decode('utf-8')
+        current_user.password = generate_password_hash(form.password.data)
+        db.session.commit()
+        flash('Your password has been updated!', 'success')
+        return redirect(url_for('account'))
+    return render_template('account.html', form=form)
 
 @app.route('/encode', methods=['GET', 'POST'])
 @login_required
@@ -85,7 +90,7 @@ def encode():
             encoded_image = encode_message(filepath, message)
             encoded_filename = 'encoded_' + filename
             encoded_image_path = os.path.join(app.config['UPLOAD_FOLDER'], encoded_filename)
-            encoded_image.save(encoded_image_path)  # Save the image to the specified path
+            encoded_image.save(encoded_image_path)  # Save the encoded image
             flash('Message encoded successfully!', 'success')
             return send_file(encoded_image_path, as_attachment=True, download_name=encoded_filename)
     return render_template('encode.html', title='Encode')
@@ -119,6 +124,13 @@ def decode():
     return render_template('decode.html', title='Decode', decoded_message=decoded_message)
 
 @app.route('/reset_password', methods=['GET', 'POST'])
+@login_required
 def reset_password():
-    # Logic for resetting the password
-    return render_template('reset_password.html')
+    form = ResetPasswordForm()
+    if form.validate_on_submit():
+        # Use bcrypt to hash the new password
+        current_user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
+        db.session.commit()
+        flash('Your password has been updated!', 'success')
+        return redirect(url_for('account'))
+    return render_template('reset_password.html', form=form)

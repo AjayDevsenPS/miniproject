@@ -3,7 +3,6 @@ from wtforms import StringField, PasswordField, SubmitField, BooleanField
 from wtforms.validators import DataRequired, Email, EqualTo, ValidationError
 from app.models import User
 
-
 class RegistrationForm(FlaskForm):
     username = StringField('Username', validators=[DataRequired()])
     email = StringField('Email', validators=[DataRequired(), Email()])
@@ -13,7 +12,7 @@ class RegistrationForm(FlaskForm):
 
     def validate_username(self, username):
         """
-         Validate that the username doesn't already exist in the database.
+        Validate that the username doesn't already exist in the database.
 
         :param username: Username to be checked
         :return: None
@@ -23,10 +22,16 @@ class RegistrationForm(FlaskForm):
             raise ValidationError('That username is taken. Please choose a different one.')
 
     def validate_email(self, email):
+        """
+        Validate that the email doesn't already exist in the database.
+
+        :param email: Email to be checked
+        :return: None
+        """
         user = User.query.filter_by(email=email.data).first()
         if user:
             raise ValidationError('That email is taken. Please choose a different one.')
-        
+
 class LoginForm(FlaskForm):
     email = StringField('Email', validators=[DataRequired(), Email()])
     password = PasswordField('Password', validators=[DataRequired()])
@@ -34,5 +39,6 @@ class LoginForm(FlaskForm):
     submit = SubmitField('Login')
 
 class ResetPasswordForm(FlaskForm):
-    email = StringField('Email', validators=[DataRequired(), Email()])
-    submit = SubmitField('Reset Password')
+    password = PasswordField('New Password', validators=[DataRequired()])
+    confirm_password = PasswordField('Confirm Password', validators=[DataRequired(), EqualTo('password')])
+    submit = SubmitField('Update Password')
