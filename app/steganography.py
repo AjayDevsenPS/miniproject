@@ -1,14 +1,20 @@
 from PIL import Image
 
+
 def encode_message(image_path, message):
     # Open the image
     img = Image.open(image_path)
     encoded = img.copy()
     width, height = img.size
+    total_pixels = width * height * 3  # Each pixel has 3 color channels (RGB)
     
     # Add a delimiter to the message to indicate the end
     message += "###"
     message_bin = ''.join([format(ord(char), "08b") for char in message])
+    
+    # Check if the image can hold the message
+    if len(message_bin) > total_pixels:
+        raise ValueError("Message is too long to encode in the provided image.")
     
     message_idx = 0
     
@@ -50,7 +56,9 @@ def decode_message(image_path):
     decoded_data = ""
     for byte in all_bytes:
         decoded_data += chr(int(byte, 2))
+        # Break if the delimiter is found
         if decoded_data[-3:] == "###":
-            break
-    
-    return decoded_data[:-3]  # Remove the delimiter
+            return decoded_data[:-3]  # Return decoded message without delimiter
+
+    # If no delimiter is found, return an empty string
+    return ""

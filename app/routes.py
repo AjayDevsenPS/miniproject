@@ -132,5 +132,6 @@ def reset_password():
         current_user.password = bcrypt.generate_password_hash(form.password.data).decode('utf-8')
         db.session.commit()
         flash('Your password has been updated!', 'success')
-        return redirect(url_for('account'))
+        return redirect(url_for('account'))  # Redirect to the account page after updating
     return render_template('reset_password.html', form=form)
+
